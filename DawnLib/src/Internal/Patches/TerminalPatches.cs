@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using Dawn.Utils;
 using Mono.Cecil.Cil;
 using MonoMod.Cil;
@@ -7,12 +8,95 @@ using MonoMod.Cil;
 namespace Dawn.Internal;
 static class TerminalPatches
 {
+    internal static event Action OnTerminalAwake = delegate { };
+    internal static event Action OnTerminalDisable = delegate { };
     internal static void Init()
     {
+        On.Terminal.Awake += TerminalAwakeHook;
+        On.Terminal.OnDisable += TerminalDisableHook;
+        On.Terminal.ParsePlayerSentence += HandleDawnCommand;
         On.Terminal.LoadNewNodeIfAffordable += HandlePredicate;
         On.Terminal.TextPostProcess += UpdateItemPrices;
         IL.Terminal.TextPostProcess += HideResults;
         IL.Terminal.TextPostProcess += UseFailedNameResults;
+    }
+
+    private static void TerminalDisableHook(On.Terminal.orig_OnDisable orig, Terminal self)
+    {
+        //All commands use this event to destroy themselves between lobby loads
+        OnTerminalDisable.Invoke();
+    }
+
+    private static void TerminalAwakeHook(On.Terminal.orig_Awake orig, Terminal self)
+    {
+        orig(self);
+        OnTerminalAwake.Invoke();
+        
+        foreach(var keyword in self.terminalNodes.allKeywords)
+        {
+            if (String.IsNullOrEmpty(keyword.GetKeywordCategory()))
+                keyword.SetKeywordCategory("Other");
+
+            if (String.IsNullOrEmpty(keyword.GetKeywordDescription()))
+            {
+                if (keyword.TryGetKeywordInfoText(out string result))
+                    keyword.SetKeywordDescription(result);
+                else
+                    keyword.SetKeywordDescription($"No information on the {keyword.word} command!");
+            }
+        }
+    }
+
+    private static TerminalNode HandleDawnCommand(On.Terminal.orig_ParsePlayerSentence orig, Terminal self)
+    {
+        //Get vanilla result
+        TerminalNode terminalNode = orig(self);
+        
+        //reset LastCommand value, this will not be set for EVERY command for the time being
+        //IL patch could be used in the future to set this for every instance a keyword is selected for it's node.
+        //Cannot be set based on terminalNode as nodes can have multiple keywords
+        self.SetLastCommand(string.Empty);
+
+        //vanill result is a parse failed node or NULL
+        //The below will check if the input is a keyword that accepts input with input following the command
+        if(ParseFailed(terminalNode, self))
+        {
+            string input = self.screenText.text[^self.textAdded..];
+            //below only grabs keywords that accept additional input
+            var terminalKeyword = self.terminalNodes.allKeywords.FirstOrDefault(x => input.StringStartsWithInvariant(x.word) && x.GetKeywordAcceptInput());
+            if (terminalKeyword != null)
+            {
+                terminalNode = terminalKeyword.specialKeywordResult; //only set node if a matching keyword is found
+                self.SetLastCommand(terminalKeyword.word); //this value is useful for input-based commands to parse out the command keyword
+            }
+        }
+
+        //updates the node's displaytext based on it's NodeFunction Func<string> that was injected (if not null)
+        if (terminalNode.HasCommandFunction())
+            terminalNode.displayText = terminalNode.GetCommandFunction().Invoke();
+
+        return terminalNode;
+    }
+
+    private static bool ParseFailed(TerminalNode terminalNode, Terminal self)
+    {
+        //ParserError1
+        if (terminalNode == self.terminalNodes.specialNodes[10])
+            return true;
+        //ParserError2
+        if (terminalNode == self.terminalNodes.specialNodes[11])
+            return true;
+        //ParserError3
+        if (terminalNode == self.terminalNodes.specialNodes[12])
+            return true;
+
+        //for some reason more than 5 items in the input array returns a null terminalNode in vanilla
+        //we will try to parse for input-based commands in this scenario as well
+        if (terminalNode == null)
+            return true;
+
+        return false;
+
     }
 
     // this is currently a separate function because this is very specific to vanilla

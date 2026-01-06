@@ -5,6 +5,7 @@ using System.Reflection;
 using BepInEx;
 using BepInEx.Logging;
 using Dawn.Internal;
+using Dawn.src;
 using Dawn.Utils;
 using HarmonyLib;
 using MonoMod.RuntimeDetour;
@@ -76,6 +77,9 @@ public class DawnPlugin : BaseUnityPlugin
         SaveDataPatch.Init();
         TerminalPatches.Init();
         DebugPatches.Init();
+
+        //Testing
+        DawnTesting.TestCommands();
 
         _harmony.PatchAll(Assembly.GetExecutingAssembly());
 
