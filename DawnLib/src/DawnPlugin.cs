@@ -5,7 +5,6 @@ using System.Reflection;
 using BepInEx;
 using BepInEx.Logging;
 using Dawn.Internal;
-using Dawn.src;
 using Dawn.Utils;
 using HarmonyLib;
 using MonoMod.RuntimeDetour;

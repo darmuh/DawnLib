@@ -26,6 +26,9 @@ static class TerminalPatches
     {
         //All commands use this event to destroy themselves between lobby loads
         OnTerminalDisable.Invoke();
+
+        //still need to run the method
+        orig(self);
     }
 
     private static void TerminalStartHook(On.Terminal.orig_Start orig, Terminal self)

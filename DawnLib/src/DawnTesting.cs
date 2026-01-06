@@ -2,7 +2,7 @@
 using Dawn.Internal;
 using UnityEngine.Events;
 
-namespace Dawn.src;
+namespace Dawn;
 
 internal class DawnTesting
 {
