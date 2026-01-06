@@ -172,11 +172,6 @@ static class ItemRegistrationHandler
         List<CompatibleNoun> infoCompatibleNouns = infoKeyword.compatibleNouns.ToList();
         List<TerminalKeyword> terminalKeywords = terminal.terminalNodes.allKeywords.ToList();
 
-        foreach (TerminalKeyword terminalKeyword in terminalKeywords)
-        {
-            terminalKeyword.word = terminalKeyword.word.Replace(" ", "-").ToLowerInvariant();
-        }
-
         for (int i = 0; i < terminal.buyableItemsList.Length; i++)
         {
             Item buyableItem = terminal.buyableItemsList[i];
