@@ -13,6 +13,7 @@ static class TerminalPatches
     internal static void Init()
     {
         On.Terminal.Awake += TerminalAwakeHook;
+        On.Terminal.Start += TerminalStartHook;
         On.Terminal.OnDisable += TerminalDisableHook;
         On.Terminal.ParsePlayerSentence += HandleDawnCommand;
         On.Terminal.LoadNewNodeIfAffordable += HandlePredicate;
@@ -27,24 +28,35 @@ static class TerminalPatches
         OnTerminalDisable.Invoke();
     }
 
-    private static void TerminalAwakeHook(On.Terminal.orig_Awake orig, Terminal self)
+    private static void TerminalStartHook(On.Terminal.orig_Start orig, Terminal self)
     {
         orig(self);
-        OnTerminalAwake.Invoke();
         
-        foreach(var keyword in self.terminalNodes.allKeywords)
+        //assign priorities to any remaining keywords that have not received a value yet
+        //also assign descriptions/category if unassigned
+        //doing this in start to give time after Terminal.Awake where commands are created
+        foreach (var keyword in self.terminalNodes.allKeywords)
         {
+            keyword.TryAssignType();
             if (String.IsNullOrEmpty(keyword.GetKeywordCategory()))
-                keyword.SetKeywordCategory("Other");
+                keyword.SetKeywordCategory(keyword.GetKeywordPriority().ToString());
 
             if (String.IsNullOrEmpty(keyword.GetKeywordDescription()))
             {
                 if (keyword.TryGetKeywordInfoText(out string result))
-                    keyword.SetKeywordDescription(result);
+                    keyword.SetKeywordDescription(result.Trim());
                 else
-                    keyword.SetKeywordDescription($"No information on the {keyword.word} command!");
+                    keyword.SetKeywordDescription($"No information on the terminal keyword [ {keyword.word} ]");
             }
-        }
+        } 
+    }
+
+    private static void TerminalAwakeHook(On.Terminal.orig_Awake orig, Terminal self)
+    {
+        orig(self);
+        //below will have many terminal commands begin building on the below invoke
+        //only commands with a custom defined build event will not use this event
+        OnTerminalAwake.Invoke();
     }
 
     private static TerminalNode HandleDawnCommand(On.Terminal.orig_ParsePlayerSentence orig, Terminal self)
@@ -53,12 +65,12 @@ static class TerminalPatches
         TerminalNode terminalNode = orig(self);
         
         //reset LastCommand value, this will not be set for EVERY command for the time being
-        //IL patch could be used in the future to set this for every instance a keyword is selected for it's node.
+        //IL patch could be used in the future to set this for every time a keyword is selected for it's node.
         //Cannot be set based on terminalNode as nodes can have multiple keywords
         self.SetLastCommand(string.Empty);
 
-        //vanill result is a parse failed node or NULL
-        //The below will check if the input is a keyword that accepts input with input following the command
+        //The below will check if the terminal input is a keyword that accepts text following the command's keyword
+        //If a match is found, the LastCommand variable will be updated from an empty string to help with parsing the input
         if(ParseFailed(terminalNode, self))
         {
             string input = self.screenText.text[^self.textAdded..];

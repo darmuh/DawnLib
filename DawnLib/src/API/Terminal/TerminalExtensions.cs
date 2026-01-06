@@ -92,4 +92,99 @@ public static class TerminalExtensions
         terminalKeyword = null!;
         return false;
     }
+
+    internal static void TryAssignType(this TerminalKeyword word)
+    {
+        //don't try to reset priorities that have already been assigned
+        if (word.GetKeywordPriority() != 0)
+            return;
+
+        if (word.isVerb || ListingWords.Contains(word.word.ToLowerInvariant()))
+        {
+            word.SetKeywordPriority(ITerminalKeyword.KeywordType.VanillaCore);
+            return;
+        }
+
+        if(word.accessTerminalObjects)
+        {
+            word.SetKeywordPriority(ITerminalKeyword.KeywordType.Code);
+            return;
+        }
+
+        if (word.specialKeywordResult != null)
+        {
+            word.SetKeywordPriority(word.specialKeywordResult.TryGetTerminalNodeType());
+            return;
+        }
+
+        if(word.defaultVerb != null)
+        {            
+            var match = word.defaultVerb.compatibleNouns.FirstOrDefault(x => x.noun.word.CompareStringsInvariant(word.word));
+            if (match != null)
+            {
+                var priority = match.result.TryGetTerminalNodeType();
+                word.SetKeywordPriority(priority);
+                DawnPlugin.Logger.LogDebug($"{word.word} priority set to {priority}");
+                return;
+            }      
+            else
+                DawnPlugin.Logger.LogDebug($"Unable to determine keyword type for word: [ {word.word} ]\nKeywordPriority is set to other!");
+        }
+
+        word.SetKeywordPriority(ITerminalKeyword.KeywordType.Other);
+    }
+
+    //vanilla keywords that should probably not be replaced unless the user is intending to overwrite a core function of the game
+    private static readonly List<string> ListingWords = ["company", "moons", "store", "help", "other", "bestiary", "storage", "scan", "upgrades", "decor", "sigurd"];
+    public static ITerminalKeyword.KeywordType TryGetTerminalNodeType(this TerminalNode node)
+    {
+        if(node == null)
+        {
+            DawnPlugin.Logger.LogDebug("Null TerminalNode provided to TryGetTerminalNodeType, returning lowest priority");
+            return ITerminalKeyword.KeywordType.Other;
+        }
+
+        //just assuming any node with a terminal event string is a core gameplay element
+        //vanilla examples are eject & switch
+        if(!string.IsNullOrEmpty(node.terminalEvent))
+            return ITerminalKeyword.KeywordType.VanillaCore;
+
+        //moon keywords
+        if (node.buyRerouteToMoon > -1 || node.displayPlanetInfo > -1)
+            return ITerminalKeyword.KeywordType.Moon;
+        
+        //vehicle keywords
+        if (node.buyVehicleIndex > -1)
+            return ITerminalKeyword.KeywordType.VehicleItem;
+
+        //shop keywords
+        if (node.shipUnlockableID > -1 || node.buyItemIndex > -1)
+            return ITerminalKeyword.KeywordType.ShopItem;
+        
+        //bestiary keywords
+        if (node.creatureFileID > -1)
+            return ITerminalKeyword.KeywordType.BestiaryItem;
+        
+        //log keywords
+        if (node.storyLogFileID > -1)
+            return ITerminalKeyword.KeywordType.StoryLogItem;
+        
+        //command keywords
+        if (node.HasCommandFunction())
+            return ITerminalKeyword.KeywordType.Command;
+        
+        //no matching types
+        return ITerminalKeyword.KeywordType.Other;
+    }
+
+    public static ITerminalKeyword.KeywordType GetKeywordPriority(this TerminalKeyword word)
+    {
+        return ((ITerminalKeyword)word).KeywordPriority;
+    }
+
+    public static void SetKeywordPriority(this TerminalKeyword word, ITerminalKeyword.KeywordType value)
+    {
+        ((ITerminalKeyword)word).KeywordPriority = value;
+    }
+
 }

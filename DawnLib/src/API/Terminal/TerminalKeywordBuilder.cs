@@ -8,15 +8,35 @@ public class TerminalKeywordBuilder
 {
     private TerminalKeyword _keyword;
 
-    internal TerminalKeywordBuilder(string name, string word)
+    internal TerminalKeywordBuilder(string name, string word, ITerminalKeyword.KeywordType _priority)
     {
         if (TerminalRefs.Instance.TryGetKeyword(word, out _keyword))
         {
-            throw new ArgumentException($"'{word}' already has an existing TerminalKeyword.");
+            var existingPriority = _keyword.GetKeywordPriority();
+            if (existingPriority <= _priority)
+            {
+                DawnPlugin.Logger.LogWarning($"'{word}' already has an existing TerminalKeyword with a higher priority [ {existingPriority} ]");
+                //below still creates a new keyword with just a unique (and unusuable) replacement word.
+                //throwing an exception here breaks the terminal and returning a null keyword will just break the terminal later
+                _keyword = ScriptableObject.CreateInstance<TerminalKeyword>();
+                _keyword.name = name;
+                _keyword.SetKeywordPriority(_priority);
+                SetWord(word + _keyword.GetHashCode());
+                DawnPlugin.Logger.LogWarning($"TerminalKeyword word set to {_keyword.word}");
+                return;
+            }
+            else
+            {
+                DawnPlugin.Logger.LogWarning($"Replacing keyword [{_keyword.word}] with priority [ {existingPriority} ] due to new keyword with the same word at a higher priority [ {_priority} ]");
+                _keyword.name = name;
+                _keyword.SetKeywordPriority(_priority);
+                return;
+            }
         }
             
         _keyword = ScriptableObject.CreateInstance<TerminalKeyword>();
         _keyword.name = name;
+        _keyword.SetKeywordPriority(_priority);
         SetWord(word);
     }
 

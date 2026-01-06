@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using Dawn.Internal;
+using UnityEngine.Events;
 
 namespace Dawn;
 
@@ -80,10 +81,17 @@ public class TerminalCommandRegistrationBuilder
         return this;
     }
 
-    public TerminalCommandRegistrationBuilder SetCustomBuildEvent(Action buildEvent)
+
+    //NOTE: The event in this param must invoke AFTER Terminal Awake in order to work
+    public TerminalCommandRegistrationBuilder SetCustomBuildEvent(UnityEvent buildEvent)
     {
-        buildEvent += Build;
+        buildEvent.AddListener(Build);
         return this;
+    }
+
+    private void HandleCustomBuildEvent(object sender, EventArgs e)
+    {
+        Build();
     }
 
     public TerminalCommandRegistrationBuilder SetDescription(string description)
@@ -118,6 +126,8 @@ public class TerminalCommandRegistrationBuilder
 
     private void Build()
     {
+        DawnPlugin.Logger.LogDebug($"Attempting to build command [{register.Name}]");
+
         if (!ShouldBuild())
         {
             DawnPlugin.Logger.LogWarning($"Unable to build command [{register.Name}] due to missing required components!");
@@ -134,7 +144,7 @@ public class TerminalCommandRegistrationBuilder
         foreach (var word in words)
         {
             DawnPlugin.Logger.LogDebug($"Creating keyword [ {word} ] for command [ {register.Name} ]");
-            TerminalKeywordBuilder addWord = new($"{register.Name}_{word}", word);
+            TerminalKeywordBuilder addWord = new($"{register.Name}_{word}", word, ITerminalKeyword.KeywordType.Command);
             addWord.SetAcceptInput(register.AcceptAdditionalText);
             keywords.Add(addWord.Build());
         }

@@ -83,7 +83,7 @@ public class EnemyInfoBuilder : BaseInfoBuilder<DawnEnemyInfo, EnemyType, EnemyI
             wordOverride = value.enemyName.ToLowerInvariant().Replace(' ', '-');
         }
 
-        _nameKeyword = new TerminalKeywordBuilder($"{value.enemyName}NameKeyword", wordOverride)
+        _nameKeyword = new TerminalKeywordBuilder($"{value.enemyName}NameKeyword", wordOverride, ITerminalKeyword.KeywordType.BestiaryItem)
             .Build();
 
         return this;
