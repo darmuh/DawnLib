@@ -7,17 +7,17 @@ namespace Dawn;
 
 public class TerminalCommandBuilder
 {
-    private string _commandName;
-    private TerminalNode _resultNode;
+    private string _commandName = string.Empty;
+    private TerminalNode _resultNode = null!;
     //list allows for multiple keywords to be added for the same result/query node
     //Also is used to track everything that is created for a command (nodes, keywords, and compatible nouns) for deletion at terminaldisable
     private List<TerminalKeyword> _validKeywords = [];
 
     //Required for Query-style commands (confirm/deny)
-    private TerminalNode _queryNode; //for nodes that have compatible nouns like "confirm or deny" which query the user 2 choices
-    private TerminalNode _cancelNode; //same as query node, this is the result of denying from the query node
-    private TerminalKeyword _continueWord; //word used to continue after a query
-    private TerminalKeyword _cancelWord;
+    private TerminalNode? _queryNode; //for nodes that have compatible nouns like "confirm or deny" which query the user 2 choices
+    private TerminalNode? _cancelNode; //same as query node, this is the result of denying from the query node
+    private TerminalKeyword? _continueWord; //word used to continue after a query
+    private TerminalKeyword? _cancelWord;
 
 
     public TerminalCommandBuilder(string name)
@@ -44,7 +44,7 @@ public class TerminalCommandBuilder
             terminalWords.Remove(_validKeywords[i]);
 
             DawnPlugin.Logger.LogDebug($"Deleting command (keyword, compatible nouns, and related terminal nodes): {_validKeywords[i].name}");
-            
+
             //destroy nouns first
             if (_validKeywords[i].compatibleNouns != null && _validKeywords[i].compatibleNouns.Length > 0)
             {
@@ -71,7 +71,7 @@ public class TerminalCommandBuilder
 
     public TerminalCommandBuilder AddKeyword(TerminalKeyword word)
     {
-        if(!_validKeywords.Contains(word))
+        if (!_validKeywords.Contains(word))
             _validKeywords.Add(word);
 
         return this;
@@ -79,7 +79,7 @@ public class TerminalCommandBuilder
 
     public TerminalCommandBuilder AddKeyword(List<TerminalKeyword> words)
     {
-        foreach(TerminalKeyword keyword in words)
+        foreach (TerminalKeyword keyword in words)
         {
             AddKeyword(keyword);
         }
@@ -107,7 +107,7 @@ public class TerminalCommandBuilder
 
     public TerminalCommandBuilder SetContinueWord(string word)
     {
-        if(_continueWord != null)
+        if (_continueWord != null)
             UnityEngine.Object.Destroy(_continueWord);
 
         _continueWord = ScriptableObject.CreateInstance<TerminalKeyword>();
@@ -130,7 +130,7 @@ public class TerminalCommandBuilder
     public TerminalCommandBuilder AddResultAction(Func<string> _func)
     {
         if (_resultNode != null)
-            _resultNode.SetNodeFunction(_func);  
+            _resultNode.SetNodeFunction(_func);
         else
             DawnPlugin.Logger.LogWarning("Unable to set result action for null TerminalNode!");
 
@@ -193,6 +193,11 @@ public class TerminalCommandBuilder
 
     internal TerminalCommandBuilder AssignKeywordsToQueryNode()
     {
+        if (_queryNode == null)
+        {
+            DawnPlugin.Logger.LogWarning($"Unable to assign keywords for [{_commandName}] to a NULL QueryNode!");
+            return this;
+        }
         foreach (TerminalKeyword keyword in _validKeywords)
         {
             keyword.specialKeywordResult = _queryNode;

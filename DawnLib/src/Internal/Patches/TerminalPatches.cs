@@ -34,7 +34,7 @@ static class TerminalPatches
     private static void TerminalStartHook(On.Terminal.orig_Start orig, Terminal self)
     {
         orig(self);
-        
+
         //assign priorities to any remaining keywords that have not received a value yet
         //also assign descriptions/category if unassigned
         //doing this in start to give time after Terminal.Awake where commands are created
@@ -51,7 +51,7 @@ static class TerminalPatches
                 else
                     keyword.SetKeywordDescription($"No information on the terminal keyword [ {keyword.word} ]");
             }
-        } 
+        }
     }
 
     private static void TerminalAwakeHook(On.Terminal.orig_Awake orig, Terminal self)
@@ -66,7 +66,7 @@ static class TerminalPatches
     {
         //Get vanilla result
         TerminalNode terminalNode = orig(self);
-        
+
         //reset LastCommand value, this will not be set for EVERY command for the time being
         //IL patch could be used in the future to set this for every time a keyword is selected for it's node.
         //Cannot be set based on terminalNode as nodes can have multiple keywords
@@ -74,7 +74,7 @@ static class TerminalPatches
 
         //The below will check if the terminal input is a keyword that accepts text following the command's keyword
         //If a match is found, the LastCommand variable will be updated from an empty string to help with parsing the input
-        if(ParseFailed(terminalNode, self))
+        if (ParseFailed(terminalNode, self))
         {
             string input = self.screenText.text[^self.textAdded..];
             //below only grabs keywords that accept additional input

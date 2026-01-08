@@ -33,7 +33,7 @@ public class TerminalKeywordBuilder
                 return;
             }
         }
-            
+
         _keyword = ScriptableObject.CreateInstance<TerminalKeyword>();
         _keyword.name = name;
         _keyword.SetKeywordPriority(_priority);

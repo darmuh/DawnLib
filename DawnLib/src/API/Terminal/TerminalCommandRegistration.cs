@@ -8,20 +8,20 @@ namespace Dawn;
 //for use with creating terminal commands from plugin awake
 internal class TerminalCommandRegistration
 {
-    public string Name;
-    public IProvider<bool> IsEnabled;
+    public string Name = string.Empty;
+    public IProvider<bool> IsEnabled = null!;
     public bool DoesClearText = true;
     public string Category = string.Empty;
     public string Description = string.Empty;
-    public IProvider<List<string>> KeywordList;
+    public IProvider<List<string>> KeywordList = null!;
 
-    public Func<string> ResultFunction;
+    public Func<string> ResultFunction = null!;
 
     //Query-Style
-    public Func<string> QueryFunction;
-    public Func<string> CancelFunction;
-    public string ContinueWord = "confirm";
-    public string CancelWord = "deny";
+    public Func<string>? QueryFunction;
+    public Func<string>? CancelFunction;
+    public string? ContinueWord;
+    public string? CancelWord;
 
     //for commands that accept input after the keyword (ie. "fov 90" where the command is <fov> and <90> is the additional input)
     //will apply to keyword via interface
@@ -33,17 +33,12 @@ internal class TerminalCommandRegistration
     }
 }
 
-public class TerminalCommandRegistrationBuilder
+public class TerminalCommandRegistrationBuilder(string CommandName, Func<string> mainFunction)
 {
-    private TerminalCommandRegistration register;
-
-    public TerminalCommandRegistrationBuilder(string CommandName, Func<string> mainFunction)
+    private TerminalCommandRegistration register = new(CommandName)
     {
-        register = new(CommandName)
-        {
-            ResultFunction = mainFunction
-        };
-    }
+        ResultFunction = mainFunction
+    };
 
     public TerminalCommandRegistrationBuilder SetKeywords(IProvider<List<string>> keywords)
     {
@@ -168,14 +163,14 @@ public class TerminalCommandRegistrationBuilder
             var cancelNode = cancelBuilder.Build();
             commandbuilder.SetCancelNode(cancelBuilder.Build());
 
-            commandbuilder.SetCancelWord(register.CancelWord);
-            commandbuilder.SetContinueWord(register.ContinueWord);
-            commandbuilder.AddCancelAction(register.CancelFunction);
-            commandbuilder.AddQueryAction(register.QueryFunction);
+            commandbuilder.SetCancelWord(register.CancelWord!);
+            commandbuilder.SetContinueWord(register.ContinueWord!);
+            commandbuilder.AddCancelAction(register.CancelFunction!);
+            commandbuilder.AddQueryAction(register.QueryFunction!);
         }
 
         commandbuilder.FinishBuild();
-        
+
     }
 
     private bool ShouldBuild()
@@ -183,13 +178,13 @@ public class TerminalCommandRegistrationBuilder
         if (!register.IsEnabled.Provide())
             return false;
 
-        if(register.KeywordList.Provide().Count == 0) return false;
+        if (register.KeywordList.Provide().Count == 0) return false;
 
         return true;
     }
 
     private bool IsQueryCommand()
     {
-        return register.QueryFunction != null && register.CancelFunction != null;
+        return register.QueryFunction != null && register.CancelFunction != null && register.ContinueWord != null && register.CancelWord != null;
     }
 }

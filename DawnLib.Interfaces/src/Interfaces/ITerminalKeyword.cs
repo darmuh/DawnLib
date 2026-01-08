@@ -12,8 +12,8 @@ public interface ITerminalKeyword
         Unset = 0, //used for default value before it has been set, ie. vanilla keywords or keywords added outside of DawnLib
         VanillaCore, //core vanilla keywords that overwriting could severely affect gameplay
         Code, //doors, turrets, etc.
-        Moon, 
-        VehicleItem, 
+        Moon,
+        VehicleItem,
         ShopItem,
         BestiaryItem,
         StoryLogItem,
