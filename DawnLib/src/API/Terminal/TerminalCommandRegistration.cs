@@ -198,6 +198,6 @@ public class TerminalCommandRegistrationBuilder(string CommandName, Func<string>
 
     private bool IsQueryCommand()
     {
-        return register.QueryFunction != null && register.CancelFunction != null && register.ContinueWord != null && register.CancelWord != null;
+        return register.QueryFunction != null && register.CancelFunction != null && !string.IsNullOrWhiteSpace(register.ContinueWord) && !string.IsNullOrWhiteSpace(register.CancelWord);
     }
 }
