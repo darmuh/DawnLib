@@ -12,7 +12,7 @@ internal class DawnTesting
         version.SetEnabled(new FuncProvider<bool>(ShouldAddVersion));
         version.SetKeywords(new SimpleProvider<List<string>>(["dawn version", "version"]));
         version.SetCategory("Test");
-        version.SetClearText(false);
+        version.SetClearText(TerminalCommandRegistration.ClearText.Result | TerminalCommandRegistration.ClearText.Query);
         version.BuildOnTerminalAwake();
 
         UnityEvent test = new();
@@ -45,7 +45,7 @@ internal class DawnTesting
         testQuery.SetupCancel(() => "You have selected, NO!\n\n");
         testQuery.SetContinueWord("yes");
         testQuery.SetCancelWord("no");
-        testQuery.SetClearText(true);
+        testQuery.SetClearText(TerminalCommandRegistration.ClearText.Query);
         testQuery.SetDescription("Test query command with added compatible nouns");
         testQuery.BuildOnTerminalAwake();
     }

@@ -2,20 +2,23 @@
 using System.Collections.Generic;
 using Dawn.Internal;
 using UnityEngine.Events;
+using static Dawn.TerminalCommandRegistration;
 
 namespace Dawn;
 
 //for use with creating terminal commands from plugin awake
-internal class TerminalCommandRegistration
+public class TerminalCommandRegistration
 {
+    //--- Required Values
     public string Name = string.Empty;
     public IProvider<bool> IsEnabled = null!;
-    public bool DoesClearText = true;
-    public string Category = string.Empty;
-    public string Description = string.Empty;
+    public ClearText DoesClearText = ClearText.Result;
     public IProvider<List<string>> KeywordList = null!;
-
     public Func<string> ResultFunction = null!;
+
+    //--- Optional Values
+    public string? Category;
+    public string? Description;
 
     //Query-Style
     public Func<string>? QueryFunction;
@@ -30,6 +33,16 @@ internal class TerminalCommandRegistration
     internal TerminalCommandRegistration(string commandName)
     {
         Name = commandName;
+    }
+
+    //Which nodes should clear text on load,
+    [Flags]
+    public enum ClearText
+    {
+        None = 0,
+        Result = 1 << 0,
+        Query = 1 << 1,
+        Cancel = 1 << 2
     }
 }
 
@@ -101,7 +114,7 @@ public class TerminalCommandRegistrationBuilder(string CommandName, Func<string>
         return this;
     }
 
-    public TerminalCommandRegistrationBuilder SetClearText(bool value)
+    public TerminalCommandRegistrationBuilder SetClearText(ClearText value)
     {
         register.DoesClearText = value;
         return this;
@@ -131,7 +144,7 @@ public class TerminalCommandRegistrationBuilder(string CommandName, Func<string>
 
         TerminalNodeBuilder resultbuilder = new($"{register.Name}_node");
         resultbuilder.SetDisplayText($"{register.Name} command");
-        resultbuilder.SetClearPreviousText(register.DoesClearText);
+        resultbuilder.SetClearPreviousText(register.DoesClearText.HasFlag(ClearText.Result));
         TerminalNode resultNode = resultbuilder.Build();
         List<TerminalKeyword> keywords = [];
         List<string> words = register.KeywordList.Provide();
@@ -153,13 +166,13 @@ public class TerminalCommandRegistrationBuilder(string CommandName, Func<string>
         {
             TerminalNodeBuilder queryBuilder = new($"{register.Name}_Query");
             queryBuilder.SetDisplayText($"{register.Name} Query");
-            queryBuilder.SetClearPreviousText(true); //add this as a property or just keep it default true?
+            queryBuilder.SetClearPreviousText(register.DoesClearText.HasFlag(ClearText.Query));
             var queryNode = queryBuilder.Build();
             commandbuilder.SetQueryNode(queryNode);
 
             TerminalNodeBuilder cancelBuilder = new($"{register.Name}_Cancel");
             cancelBuilder.SetDisplayText($"{register.Name} Cancel");
-            cancelBuilder.SetClearPreviousText(true); //add this as a property or just keep it default true?
+            cancelBuilder.SetClearPreviousText(register.DoesClearText.HasFlag(ClearText.Cancel));
             var cancelNode = cancelBuilder.Build();
             commandbuilder.SetCancelNode(cancelBuilder.Build());
 
