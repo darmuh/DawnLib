@@ -97,11 +97,6 @@ public class TerminalCommandRegistrationBuilder(string CommandName, Func<string>
         return this;
     }
 
-    private void HandleCustomBuildEvent(object sender, EventArgs e)
-    {
-        Build();
-    }
-
     public TerminalCommandRegistrationBuilder SetDescription(string description)
     {
         register.Description = description;
