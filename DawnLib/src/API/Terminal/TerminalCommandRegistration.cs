@@ -12,7 +12,7 @@ public class TerminalCommandRegistration
     //--- Required Values
     public string Name = string.Empty;
     public IProvider<bool> IsEnabled = null!;
-    public ClearText DoesClearText = ClearText.Result;
+    public ClearText ClearTextOn = ClearText.Result;
     public IProvider<List<string>> KeywordList = null!;
     public Func<string> ResultFunction = null!;
 
@@ -116,7 +116,7 @@ public class TerminalCommandRegistrationBuilder(string CommandName, Func<string>
 
     public TerminalCommandRegistrationBuilder SetClearText(ClearText value)
     {
-        register.DoesClearText = value;
+        register.ClearTextOn = value;
         return this;
     }
 
@@ -144,7 +144,7 @@ public class TerminalCommandRegistrationBuilder(string CommandName, Func<string>
 
         TerminalNodeBuilder resultbuilder = new($"{register.Name}_node");
         resultbuilder.SetDisplayText($"{register.Name} command");
-        resultbuilder.SetClearPreviousText(register.DoesClearText.HasFlag(ClearText.Result));
+        resultbuilder.SetClearPreviousText(register.ClearTextOn.HasFlag(ClearText.Result));
         TerminalNode resultNode = resultbuilder.Build();
         List<TerminalKeyword> keywords = [];
         List<string> words = register.KeywordList.Provide();
@@ -166,13 +166,13 @@ public class TerminalCommandRegistrationBuilder(string CommandName, Func<string>
         {
             TerminalNodeBuilder queryBuilder = new($"{register.Name}_Query");
             queryBuilder.SetDisplayText($"{register.Name} Query");
-            queryBuilder.SetClearPreviousText(register.DoesClearText.HasFlag(ClearText.Query));
+            queryBuilder.SetClearPreviousText(register.ClearTextOn.HasFlag(ClearText.Query));
             var queryNode = queryBuilder.Build();
             commandbuilder.SetQueryNode(queryNode);
 
             TerminalNodeBuilder cancelBuilder = new($"{register.Name}_Cancel");
             cancelBuilder.SetDisplayText($"{register.Name} Cancel");
-            cancelBuilder.SetClearPreviousText(register.DoesClearText.HasFlag(ClearText.Cancel));
+            cancelBuilder.SetClearPreviousText(register.ClearTextOn.HasFlag(ClearText.Cancel));
             var cancelNode = cancelBuilder.Build();
             commandbuilder.SetCancelNode(cancelBuilder.Build());
 
