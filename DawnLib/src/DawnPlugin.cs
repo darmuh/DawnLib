@@ -78,7 +78,7 @@ public class DawnPlugin : BaseUnityPlugin
         DebugPatches.Init();
 
         //Testing
-        DawnTesting.TestCommands();
+        //DawnTesting.TestCommands();
 
         _harmony.PatchAll(Assembly.GetExecutingAssembly());
 
