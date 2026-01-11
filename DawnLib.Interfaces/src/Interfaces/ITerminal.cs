@@ -8,5 +8,5 @@ namespace Dawn;
 public interface ITerminal
 {
     //Used by TerminalKeywords that accept input to determine the last keyword used
-    string LastCommand { get; set; }
+    string DawnLastCommand { get; set; }
 }

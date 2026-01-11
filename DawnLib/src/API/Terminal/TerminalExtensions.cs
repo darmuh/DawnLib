@@ -10,7 +10,7 @@ public static class TerminalExtensions
 {
     public static Func<string> GetCommandFunction(this TerminalNode node)
     {
-        return ((ITerminalNode)node).NodeFunction;
+        return ((ITerminalNode)node).DawnNodeFunction;
     }
 
     internal static bool HasCommandFunction(this TerminalNode node)
@@ -21,47 +21,47 @@ public static class TerminalExtensions
 
     internal static void SetNodeFunction(this TerminalNode node, Func<string> NodeFunc)
     {
-        ((ITerminalNode)node).NodeFunction = NodeFunc;
+        ((ITerminalNode)node).DawnNodeFunction = NodeFunc;
     }
 
     public static bool GetKeywordAcceptInput(this TerminalKeyword word)
     {
-        return ((ITerminalKeyword)word).AcceptAdditionalText;
+        return ((ITerminalKeyword)word).DawnAcceptAdditionalText;
     }
 
     public static void SetKeywordAcceptInput(this TerminalKeyword word, bool value)
     {
-        ((ITerminalKeyword)word).AcceptAdditionalText = value;
+        ((ITerminalKeyword)word).DawnAcceptAdditionalText = value;
     }
 
     public static string GetKeywordCategory(this TerminalKeyword word)
     {
-        return ((ITerminalKeyword)word).Category;
+        return ((ITerminalKeyword)word).DawnKeywordCategory;
     }
 
     public static void SetKeywordCategory(this TerminalKeyword word, string value)
     {
-        ((ITerminalKeyword)word).Category = value;
+        ((ITerminalKeyword)word).DawnKeywordCategory = value;
     }
 
     public static string GetKeywordDescription(this TerminalKeyword word)
     {
-        return ((ITerminalKeyword)word).Description;
+        return ((ITerminalKeyword)word).DawnKeywordDescription;
     }
 
     public static void SetKeywordDescription(this TerminalKeyword word, string value)
     {
-        ((ITerminalKeyword)word).Description = value;
+        ((ITerminalKeyword)word).DawnKeywordDescription = value;
     }
 
     internal static void SetLastCommand(this Terminal terminal, string value)
     {
-        ((ITerminal)terminal).LastCommand = value;
+        ((ITerminal)terminal).DawnLastCommand = value;
     }
 
     public static string GetLastCommand(this Terminal terminal)
     {
-        return ((ITerminal)terminal).LastCommand;
+        return ((ITerminal)terminal).DawnLastCommand;
     }
 
     public static bool TryGetKeywordInfoText(this TerminalKeyword word, out string text)
@@ -101,13 +101,13 @@ public static class TerminalExtensions
 
         if (terminalKeyword.isVerb || VanillaWords.Contains(terminalKeyword.word.ToLowerInvariant()))
         {
-            terminalKeyword.SetKeywordPriority(ITerminalKeyword.KeywordType.VanillaCore);
+            terminalKeyword.SetKeywordPriority(ITerminalKeyword.DawnKeywordType.Core);
             return;
         }
 
         if (terminalKeyword.accessTerminalObjects)
         {
-            terminalKeyword.SetKeywordPriority(ITerminalKeyword.KeywordType.Code);
+            terminalKeyword.SetKeywordPriority(ITerminalKeyword.DawnKeywordType.Code);
             return;
         }
 
@@ -131,60 +131,60 @@ public static class TerminalExtensions
                 DawnPlugin.Logger.LogDebug($"Unable to determine keyword type for word: [ {terminalKeyword.word} ]\nKeywordPriority is set to other!");
         }
 
-        terminalKeyword.SetKeywordPriority(ITerminalKeyword.KeywordType.Other);
+        terminalKeyword.SetKeywordPriority(ITerminalKeyword.DawnKeywordType.Other);
     }
 
     //vanilla keywords that should probably not be replaced unless the API user is intending to overwrite a core function of the game
     private static readonly List<string> VanillaWords = ["company", "moons", "store", "help", "other", "bestiary", "storage", "scan", "upgrades", "decor", "sigurd"];
-    public static ITerminalKeyword.KeywordType TryGetTerminalNodeType(this TerminalNode node)
+    public static ITerminalKeyword.DawnKeywordType TryGetTerminalNodeType(this TerminalNode node)
     {
         if (node == null)
         {
             DawnPlugin.Logger.LogDebug("Null TerminalNode provided to TryGetTerminalNodeType, returning lowest priority");
-            return ITerminalKeyword.KeywordType.Other;
+            return ITerminalKeyword.DawnKeywordType.Other;
         }
 
         //just assuming any node with a terminal event string is a core gameplay element
         //vanilla examples are eject & switch
         if (!string.IsNullOrEmpty(node.terminalEvent))
-            return ITerminalKeyword.KeywordType.VanillaCore;
+            return ITerminalKeyword.DawnKeywordType.Core;
 
         //moon keywords
         if (node.buyRerouteToMoon > -1 || node.displayPlanetInfo > -1)
-            return ITerminalKeyword.KeywordType.Moon;
+            return ITerminalKeyword.DawnKeywordType.Moons;
 
         //vehicle keywords
         if (node.buyVehicleIndex > -1)
-            return ITerminalKeyword.KeywordType.VehicleItem;
+            return ITerminalKeyword.DawnKeywordType.Vehicles;
 
         //shop keywords
         if (node.shipUnlockableID > -1 || node.buyItemIndex > -1)
-            return ITerminalKeyword.KeywordType.ShopItem;
+            return ITerminalKeyword.DawnKeywordType.Store;
 
         //bestiary keywords
         if (node.creatureFileID > -1)
-            return ITerminalKeyword.KeywordType.BestiaryItem;
+            return ITerminalKeyword.DawnKeywordType.Bestiary;
 
         //log keywords
         if (node.storyLogFileID > -1)
-            return ITerminalKeyword.KeywordType.StoryLogItem;
+            return ITerminalKeyword.DawnKeywordType.SigurdLog;
 
         //command keywords
         if (node.HasCommandFunction())
-            return ITerminalKeyword.KeywordType.Command;
+            return ITerminalKeyword.DawnKeywordType.DawnCommand;
 
         //no matching types
-        return ITerminalKeyword.KeywordType.Other;
+        return ITerminalKeyword.DawnKeywordType.Other;
     }
 
-    public static ITerminalKeyword.KeywordType GetKeywordPriority(this TerminalKeyword word)
+    public static ITerminalKeyword.DawnKeywordType GetKeywordPriority(this TerminalKeyword word)
     {
-        return ((ITerminalKeyword)word).KeywordPriority;
+        return ((ITerminalKeyword)word).DawnKeywordPriority;
     }
 
-    public static void SetKeywordPriority(this TerminalKeyword word, ITerminalKeyword.KeywordType value)
+    public static void SetKeywordPriority(this TerminalKeyword word, ITerminalKeyword.DawnKeywordType value)
     {
-        ((ITerminalKeyword)word).KeywordPriority = value;
+        ((ITerminalKeyword)word).DawnKeywordPriority = value;
     }
 
 }

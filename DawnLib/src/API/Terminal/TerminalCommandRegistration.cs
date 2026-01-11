@@ -147,7 +147,7 @@ public class TerminalCommandRegistrationBuilder(string CommandName, Func<string>
         foreach (var word in words)
         {
             DawnPlugin.Logger.LogDebug($"Creating keyword [ {word} ] for command [ {register.Name} ]");
-            TerminalKeywordBuilder addWord = new($"{register.Name}_{word}", word, ITerminalKeyword.KeywordType.Command);
+            TerminalKeywordBuilder addWord = new($"{register.Name}_{word}", word, ITerminalKeyword.DawnKeywordType.DawnCommand);
             addWord.SetAcceptInput(register.AcceptAdditionalText);
             keywords.Add(addWord.Build());
         }

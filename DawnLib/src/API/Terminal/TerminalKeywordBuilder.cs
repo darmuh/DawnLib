@@ -8,7 +8,7 @@ public class TerminalKeywordBuilder
 {
     private TerminalKeyword _keyword;
 
-    internal TerminalKeywordBuilder(string name, string word, ITerminalKeyword.KeywordType _priority)
+    internal TerminalKeywordBuilder(string name, string word, ITerminalKeyword.DawnKeywordType _priority)
     {
         if (TerminalRefs.Instance.TryGetKeyword(word, out _keyword))
         {
