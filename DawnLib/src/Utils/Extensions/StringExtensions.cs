@@ -68,4 +68,25 @@ public static class StringExtensions
                                     : StringComparison.InvariantCulture;
         return input.Contains(query, comparison);
     }
+
+    public static int StringMatchScore(this string input, string query, bool ignoreCase = true)
+    {
+        int value = 0;
+        if (ignoreCase)
+        {
+            input = input.ToLowerInvariant();
+            query = query.ToLowerInvariant();
+        }
+
+        for (int i = 0; i < input.Length; i++)
+        {
+            if (query.Length <= i)
+                continue;
+
+            if (input[i].Equals(query[i]))
+                value++;
+        }
+
+        return value;
+    }
 }

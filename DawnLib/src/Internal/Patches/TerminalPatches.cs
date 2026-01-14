@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using Dawn.Utils;
 using Mono.Cecil.Cil;
 using MonoMod.Cil;
+using UnityEngine;
 
 namespace Dawn.Internal;
 static class TerminalPatches
@@ -62,27 +64,139 @@ static class TerminalPatches
         OnTerminalAwake.Invoke();
     }
 
+    private static TerminalNode GetNodeFromArray(Terminal self, string[] array)
+    {
+        TerminalKeyword verb = null!;
+        TerminalKeyword noun = null!;
+
+        foreach (string word in array)
+        {
+            //vanilla terminal only expects one verb and one noun!
+            if (noun != null && verb != null)
+                break;
+
+            if (self.DawnTryResolveKeyword(word, out TerminalKeyword result))
+            {
+                if (result.accessTerminalObjects)
+                {
+                    self.CallFunctionInAccessibleTerminalObject(result.word);
+                    self.PlayBroadcastCodeEffect();
+                    return null!; //this is what zeekers does for these
+                }
+
+                if (result.isVerb)
+                {
+                    if (verb != null)
+                        continue;
+
+                    verb = result;
+                }
+                else
+                {
+                    if (noun != null)
+                        continue;
+
+                    noun = result;
+
+                    //input based result for DawnLib Commands
+                    if (result.GetKeywordAcceptInput() && result.specialKeywordResult != null)
+                    {
+                        self.SetLastCommand(word);
+                        self.SetLastKeyword(result);
+                        return result.specialKeywordResult;
+                    }
+                }
+            }
+        }
+
+        //set this for any other potential purposes to the full input
+        //could also be set to just the noun portion of the input or the full noun keyword
+        //not sure what the use-case would be so for now just including the full array
+        self.SetLastCommand(string.Concat(array));
+
+        //failed to parse vanilla equivalent
+        if (noun == null)
+            return self.terminalNodes.specialNodes[10];
+
+        //automatically set default verb like vanilla
+        if (verb == null && noun.defaultVerb != null)
+            verb = noun.defaultVerb;
+        else
+            return self.terminalNodes.specialNodes[11];
+
+        //vanilla equivalent of trying to find noun in the given verb's compatible nouns
+        var nounResult = verb.compatibleNouns.FirstOrDefault(x => x.noun == noun);
+        if (nounResult == null)
+        {
+            //failed to find noun in verb's compatible nouns, returning failed parse node like vanilla
+            return self.terminalNodes.specialNodes[12];
+        }    
+        else
+        {
+            //again unsure of use-case for this particular property but I assume people would only care about VALID nouns
+            self.SetLastKeyword(nounResult.noun);
+            return nounResult.result;
+        }
+            
+    }
+
+    //perhaps this may be better as an IL patch
     private static TerminalNode HandleDawnCommand(On.Terminal.orig_ParsePlayerSentence orig, Terminal self)
     {
-        //Get vanilla result
-        TerminalNode terminalNode = orig(self);
-
-        //reset LastCommand value, this will not be set for EVERY command for the time being
-        //IL patch could be used in the future to set this for every time a keyword is selected for it's node.
+        //reset LastCommand value
         //Cannot be set based on terminalNode as nodes can have multiple keywords
         self.SetLastCommand(string.Empty);
+        //reset this value as well, api users should expect a potential null value
+        self.SetLastKeyword(null!);
 
-        //The below will check if the terminal input is a keyword that accepts text following the command's keyword
-        //If a match is found, the LastCommand variable will be updated from an empty string to help with parsing the input
-        if (ParseFailed(terminalNode, self))
+        //getting the values we need to override ParsePlayerSentence
+        TerminalNode terminalNode = null!;
+        string s = self.screenText.text[^self.textAdded..];
+        s = self.RemovePunctuation(s);
+        string[] array = s.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+        //let vanilla handle these words specifically
+        List<string> VanillaSwitch = ["switch", "flash", "ping", "transmit"];
+
+        if (array.Length > 1 && VanillaSwitch.Contains(array[0]))
         {
-            string input = self.screenText.text[^self.textAdded..];
-            //below only grabs keywords that accept additional input
-            var terminalKeyword = self.terminalNodes.allKeywords.FirstOrDefault(x => input.StringStartsWithInvariant(x.word) && x.GetKeywordAcceptInput());
-            if (terminalKeyword != null)
+            //just run vanilla method for these
+            terminalNode = orig(self);
+        }   
+        else
+        {
+            //-- reused vanilla code from ParsePlayerSentence
+            string value = Regex.Match(s, "\\d+").Value;
+            if (!string.IsNullOrWhiteSpace(value))
             {
-                terminalNode = terminalKeyword.specialKeywordResult; //only set node if a matching keyword is found
-                self.SetLastCommand(terminalKeyword.word); //this value is useful for input-based commands to parse out the command keyword
+                self.playerDefinedAmount = Mathf.Clamp(int.Parse(value), 0, 10);
+            }
+            else
+            { 
+                self.playerDefinedAmount = 1;
+            }
+            //-- used to determine number value provided by players
+
+            //check full input first
+            if (self.DawnTryResolveKeyword(s, out TerminalKeyword sentence))
+            {
+                self.SetLastCommand(sentence.word);
+
+                if (sentence.specialKeywordResult != null)
+                    terminalNode = sentence.specialKeywordResult;
+
+                //door codes, turrets, etc. are not handled via terminal node
+                if (sentence.accessTerminalObjects)
+                {
+                    self.CallFunctionInAccessibleTerminalObject(sentence.word);
+                    self.PlayBroadcastCodeEffect();
+                    return null!; //this is what zeekers does for these
+                }
+            }
+            else
+            {
+                //parse array of words for a result node
+                terminalNode = GetNodeFromArray(self, array);
             }
         }
 
@@ -91,27 +205,6 @@ static class TerminalPatches
             terminalNode.displayText = terminalNode.GetCommandFunction().Invoke();
 
         return terminalNode;
-    }
-
-    private static bool ParseFailed(TerminalNode terminalNode, Terminal self)
-    {
-        //ParserError1
-        if (terminalNode == self.terminalNodes.specialNodes[10])
-            return true;
-        //ParserError2
-        if (terminalNode == self.terminalNodes.specialNodes[11])
-            return true;
-        //ParserError3
-        if (terminalNode == self.terminalNodes.specialNodes[12])
-            return true;
-
-        //for some reason more than 5 items in the input array returns a null terminalNode in vanilla
-        //we will try to parse for input-based commands in this scenario as well
-        if (terminalNode == null)
-            return true;
-
-        return false;
-
     }
 
     // this is currently a separate function because this is very specific to vanilla

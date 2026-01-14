@@ -64,6 +64,16 @@ public static class TerminalExtensions
         return ((ITerminal)terminal).DawnLastCommand;
     }
 
+    internal static void SetLastKeyword(this Terminal terminal, TerminalKeyword value)
+    {
+        ((ITerminal)terminal).DawnLastKeyword = value;
+    }
+
+    public static TerminalKeyword GetLastKeyword(this Terminal terminal)
+    {
+        return ((ITerminal)terminal).DawnLastKeyword;
+    }
+
     public static bool TryGetKeywordInfoText(this TerminalKeyword word, out string text)
     {
         text = string.Empty;
@@ -73,6 +83,79 @@ public static class TerminalExtensions
 
         text = match.result.displayText;
         return true;
+    }
+
+    public static bool DawnTryResolveKeyword(this Terminal terminal, string input, out TerminalKeyword word)
+    {
+        word = null!;
+        int maxScore = 0;
+
+        //empty input, return false
+        if(string.IsNullOrWhiteSpace(input)) return false;
+
+        //only get words that start with our input to start
+        List<TerminalKeyword> keywordList = [.. terminal.terminalNodes.allKeywords.Where(x => x.word.StringStartsWithInvariant(input))];
+        
+        //follow vanilla logic of not getting more than one verb
+        if (terminal.hasGottenVerb)
+            keywordList.RemoveAll(x => x.isVerb);
+        
+        //no matches
+        if(keywordList.Count == 0)
+            return false;
+        
+        //only one match
+        if (keywordList.Count == 1)
+        {
+            word = keywordList[0];
+            return word != null;
+        }
+
+        //multiple matches expected
+        Dictionary<TerminalKeyword, int> wordScores = [];
+        foreach(TerminalKeyword keyword in keywordList)
+        {
+            var score = keyword.word.StringMatchScore(input);
+            wordScores.TryAdd(keyword, score);
+        }
+
+        foreach(var match in wordScores)
+        {
+            if (match.Key == null) continue; //skip null terminalkeywords (just in case)
+            if(word == null || maxScore == 0)
+            {
+                word = match.Key;
+                maxScore = match.Value;
+                continue;
+            }
+
+            //skip since this partial match has a lower score
+            if (maxScore > match.Value)
+                continue;
+
+            //this match has the same amount of matching characters
+            //resolve conflict by checking keyword priority (lower number = higher priority)
+            if (maxScore == match.Value)
+            {
+                //checks if the current match has a keyword priority value lower than the match assigned to the word variable (working match)
+                //a lower keyword priority value indicates a higher priority keyword
+                DawnPlugin.Logger.LogDebug($"Attempting to resolve conflict between matching results [{word.word}] & [{match.Key.word}] by comparing keyword priorities!");
+                int target = (int)word.GetKeywordPriority();
+                int current = (int)match.Key.GetKeywordPriority();
+
+                if (current < target)
+                {
+                    word = match.Key; //only need to update the word
+                    continue;
+                }
+            }
+
+            DawnPlugin.Logger.LogDebug($"Skipping partial match [{match.Key.word}] with match score {match.Value} due to better match existing with a higher priority");
+        }
+
+        terminal.SetLastKeyword(word);
+        DawnPlugin.Logger.LogMessage($"DawnTryResolveKeyword has found match with highest priority of {word.word} ({word.GetKeywordPriority()})");
+        return word != null;
     }
 
     public static bool TryGetKeyword(this Terminal terminal, string keyWord, out TerminalKeyword terminalKeyword)
