@@ -83,6 +83,7 @@ public class DawnPlugin : BaseUnityPlugin
 
         // Testing
         // DawnTesting.TestCommands();
+        DawnTesting.TestingMenus();
 
         _harmony.PatchAll(Assembly.GetExecutingAssembly());
 

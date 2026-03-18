@@ -1,12 +1,14 @@
 ﻿using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using UnityEngine;
 using Dawn.Internal;
 
 namespace Dawn.Utils;
 
 public static class TerminalExtensions
 {
+    internal static Color? CaretOriginal;
     public static bool GetKeywordAcceptingInput(this TerminalKeyword word)
     {
         return ((ITerminalKeyword)word).DawnAcceptAdditionalText;
@@ -381,5 +383,45 @@ public static class TerminalExtensions
             word = GetBestMatchFromList(input, keywordList);
             return word != null;
         }
+    }
+
+    /// <summary>
+    /// Change the Terminal's input caret color.
+    /// </summary>
+    /// <param name="terminal">The current terminal instance</param>
+    /// <param name="newColor">The new color of the terminal's input caret</param>
+    /// <param name="cacheOriginal">Should Dawnlib cache the previous color to be used during <see cref="ResetCaretColor(Terminal)"/></param>
+    public static void ChangeCaretColor(this Terminal terminal, Color newColor, bool cacheOriginal = true)
+    {
+        if (cacheOriginal)
+            CaretOriginal = terminal.screenText.caretColor;
+
+        terminal.screenText.caretColor = newColor;
+    }
+    
+    /// <summary>
+    /// Reset the terminal's caret color to the last cached color.
+    /// </summary>
+    /// <param name="terminal">This terminal instance</param>
+    /// <remarks>
+    /// If the cached color has not been set, this will not change anything. 
+    /// The color is only cached when changed via <see cref="ChangeCaretColor(Terminal, Color, bool)"/> with cacheOriginal set to true.
+    /// </remarks>
+    public static void ResetCaretColor(this Terminal terminal)
+    {
+        if (!CaretOriginal.HasValue)
+            return;
+
+        terminal.screenText.caretColor = CaretOriginal.Value;
+    }
+
+    /// <summary>
+    /// Helper method to update the terminal screen's enabled state
+    /// </summary>
+    /// <param name="terminal">The terminal instance</param>
+    /// <param name="active">Determines if the terminal screen should be on or off</param>
+    public static void TerminalScreenActive(this Terminal terminal, bool active)
+    {
+        terminal.terminalUIScreen.gameObject.SetActive(active);
     }
 }

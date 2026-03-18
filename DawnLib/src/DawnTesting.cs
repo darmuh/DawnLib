@@ -1,9 +1,27 @@
 ﻿using System;
+using System.Collections.Generic;
 
 namespace Dawn;
 
 internal class DawnTesting
 {
+    internal static void TestingMenus()
+    {
+        On.Terminal.Awake += TerminalAwakePatchTest;
+    }
+
+    private static void TerminalAwakePatchTest(On.Terminal.orig_Awake orig, Terminal self)
+    {
+        orig(self);
+
+        var menu = self.gameObject.AddComponent<DawnTestMenu>();
+        DawnTestMenuItem one = new(menu, new SimpleProvider<string>("Test One"), new SimpleProvider<List<TerminalMenuItem>>([]));
+        DawnTestMenuItem two = new(menu, new SimpleProvider<string>("Test Two"), new SimpleProvider<List<TerminalMenuItem>>([]));
+        DawnTestMenuItem three = new(menu, new SimpleProvider<string>("Test Three"), new SimpleProvider<List<TerminalMenuItem>>([]));
+        DawnTestMenuItem root = new(menu, new SimpleProvider<string>("Main"), new SimpleProvider<List<TerminalMenuItem>>([one, two, three]));
+        menu.RootMenuItem = root;
+    }
+
     internal static void TestCommands()
     {
         TerminalCommandBasicInformation versionCommandBasicInformation = new TerminalCommandBasicInformation("DawnLibVersionCommand", "Test", "Prints the version of DawnLib!", ClearText.Result | ClearText.Query);
@@ -118,4 +136,21 @@ internal class DawnTesting
     {
         return $"This is a test command displaying user input after the command.\n\nUser input is [ {userInput} ]\n\n";
     }
+}
+
+
+internal class DawnTestMenu : InteractiveTerminalMenu
+{
+    public override void Awake()
+    {
+        DawnPlugin.Logger.LogMessage("DawnTestMenu Awake!");
+        MenuName = "Dawn Test Menu";
+        base.Awake();
+        SetupCommand(["imenu"]);
+    }
+}
+
+internal class DawnTestMenuItem(InteractiveTerminalMenu terminalMenu, IProvider<string> name, IProvider<List<TerminalMenuItem>> menuItemContents) : TerminalMenuItem(terminalMenu, name, menuItemContents)
+{
+
 }
